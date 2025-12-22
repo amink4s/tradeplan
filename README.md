@@ -6,7 +6,7 @@ a farcaster mini app for traders
 This is a modular Vite + Preact application with Farcaster Frame SDK v2 integration.
 
 ### Tech Stack
-- **Frontend**: Preact (React alternative)
+- **Frontend**: Preact
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
 - **Backend**: Firebase (Auth & Firestore)
