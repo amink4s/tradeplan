@@ -2,7 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { farcasterMiniAppConnector } from '@farcaster/miniapp-wagmi-connector';
+import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
 import sdk from '@farcaster/frame-sdk';
 
 // Create wagmi config with Farcaster connector
@@ -11,7 +11,7 @@ const config = createConfig({
   transports: {
     [base.id]: http(),
   },
-  connectors: [farcasterMiniAppConnector()],
+  connectors: [farcasterMiniApp()],
 });
 
 // Create QueryClient instance
