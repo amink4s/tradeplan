@@ -2,6 +2,7 @@ import { ClipboardCheck } from 'lucide-react';
 import { useBalance } from 'wagmi';
 import sdk from '@farcaster/frame-sdk';
 import { useEffect, useState } from 'preact/hooks';
+import { BASE_CHAIN_ID } from '../constants';
 
 export const Header = () => {
   const [farcasterUser, setFarcasterUser] = useState(null);
@@ -30,7 +31,7 @@ export const Header = () => {
   // Get wallet balance using wagmi
   const { data: balance } = useBalance({
     address: address,
-    chainId: 8453, // Base chain
+    chainId: BASE_CHAIN_ID,
   });
 
   return (
@@ -67,7 +68,7 @@ export const Header = () => {
         {!balance && address && (
           <>
             <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Wallet</p>
-            <p className="text-[10px] font-mono text-slate-400">{address.substring(0, 6)}...{address.substring(38)}</p>
+            <p className="text-[10px] font-mono text-slate-400">{address.substring(0, 6)}...{address.slice(-4)}</p>
           </>
         )}
       </div>

@@ -20,6 +20,11 @@ const AppContent = () => {
 
   // Auth Logic
   useEffect(() => {
+    if (!auth) {
+      console.error('Firebase is not configured. Please set VITE_FIREBASE_CONFIG environment variable.');
+      return;
+    }
+
     const initAuth = async () => {
       try {
         // Check for custom token in global scope (if available)

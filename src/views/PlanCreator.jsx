@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { BrainCircuit } from 'lucide-react';
+import { DEFAULT_ACCOUNT_BALANCE } from '../constants';
 
-export const PlanCreator = ({ onSave, accountBalance = 10000 }) => {
+export const PlanCreator = ({ onSave, accountBalance = DEFAULT_ACCOUNT_BALANCE }) => {
   const [newTrade, setNewTrade] = useState({
     pair: '',
     direction: 'long',
