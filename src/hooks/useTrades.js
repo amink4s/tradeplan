@@ -8,15 +8,15 @@ import {
   deleteDoc 
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { getTradesCollectionPath, getTradeDocPath } from '../utils/firestore';
 
 export const useTrades = (user, farcasterUser = null) => {
   const [trades, setTrades] = useState([]);
-  const appId = import.meta.env.VITE_APP_ID || 'trade-plan-v0';
 
   useEffect(() => {
     if (!user) return;
 
-    const tradesCol = collection(db, 'artifacts', appId, 'public', 'data', 'trades');
+    const tradesCol = collection(db, ...getTradesCollectionPath());
     
     const unsubscribe = onSnapshot(
       tradesCol, 
@@ -28,7 +28,7 @@ export const useTrades = (user, farcasterUser = null) => {
     );
 
     return () => unsubscribe();
-  }, [user, appId]);
+  }, [user]);
 
   const saveTrade = async (tradeData) => {
     if (!user) return null;
@@ -49,7 +49,7 @@ export const useTrades = (user, farcasterUser = null) => {
     }
 
     try {
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'trades', tradeId), tradeToSave);
+      await setDoc(doc(db, ...getTradeDocPath(tradeId)), tradeToSave);
       return { ...tradeToSave, id: tradeId };
     } catch (err) {
       console.error("Save failed", err);
@@ -59,7 +59,7 @@ export const useTrades = (user, farcasterUser = null) => {
 
   const markResult = async (id, result) => {
     if (!user) return;
-    const tradeRef = doc(db, 'artifacts', appId, 'public', 'data', 'trades', id);
+    const tradeRef = doc(db, ...getTradeDocPath(id));
     await updateDoc(tradeRef, { 
       status: 'closed', 
       result,
@@ -69,7 +69,7 @@ export const useTrades = (user, farcasterUser = null) => {
 
   const deleteTrade = async (id) => {
     if (!user) return;
-    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'trades', id));
+    await deleteDoc(doc(db, ...getTradeDocPath(id)));
   };
 
   return {
