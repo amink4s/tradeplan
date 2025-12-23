@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useContext } from 'preact/hooks';
 import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { FarcasterProvider } from './providers/FarcasterProvider';
-import { Header } from './components/Header';
+import { FarcasterContext } from './contexts/FarcasterContext';
+import { UserProfileBar } from './components/UserProfileBar';
 import { Navigation } from './components/Navigation';
 import { MintOverlay } from './components/MintOverlay';
 import { JournalView } from './views/JournalView';
 import { PlanCreator } from './views/PlanCreator';
 import { HistoryView } from './views/HistoryView';
 import { useTrades } from './hooks/useTrades';
+import { useUserProfile } from './hooks/useUserProfile';
 
 const AppContent = () => {
   const [user, setUser] = useState(null);
@@ -16,7 +18,11 @@ const AppContent = () => {
   const [isMinting, setIsMinting] = useState(false);
   const [lastSavedTrade, setLastSavedTrade] = useState(null);
   
-  const { trades, saveTrade, markResult, deleteTrade } = useTrades(user);
+  const { user: farcasterUser } = useContext(FarcasterContext);
+  const { trades, saveTrade, markResult, deleteTrade } = useTrades(user, farcasterUser);
+  
+  // Save/update user profile in Firestore
+  useUserProfile(farcasterUser);
 
   // Auth Logic
   useEffect(() => {
@@ -73,7 +79,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8">
       <div className="max-w-xl mx-auto">
-        <Header />
+        <UserProfileBar />
         
         {!isMinting && (
           <Navigation currentView={view} onViewChange={setView} />

@@ -3,7 +3,9 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
-import sdk from '@farcaster/frame-sdk';
+import { sdk } from '@farcaster/miniapp-sdk';
+import { FarcasterContext } from '../contexts/FarcasterContext';
+import { useFarcasterAuth } from '../hooks/useFarcasterAuth';
 
 // Create wagmi config with Farcaster connector
 const config = createConfig({
@@ -17,6 +19,16 @@ const config = createConfig({
 // Create QueryClient instance
 const queryClient = new QueryClient();
 
+const FarcasterWrapper = ({ children }) => {
+  const farcasterAuth = useFarcasterAuth();
+
+  return (
+    <FarcasterContext.Provider value={farcasterAuth}>
+      {children}
+    </FarcasterContext.Provider>
+  );
+};
+
 export const FarcasterProvider = ({ children }) => {
   useEffect(() => {
     // Initialize Farcaster SDK
@@ -26,7 +38,9 @@ export const FarcasterProvider = ({ children }) => {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <FarcasterWrapper>
+          {children}
+        </FarcasterWrapper>
       </QueryClientProvider>
     </WagmiProvider>
   );

@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
-export const useTrades = (user) => {
+export const useTrades = (user, farcasterUser = null) => {
   const [trades, setTrades] = useState([]);
   const appId = import.meta.env.VITE_APP_ID || 'trade-plan-v0';
 
@@ -40,6 +40,13 @@ export const useTrades = (user) => {
       timestamp: Date.now(),
       status: 'planned'
     };
+
+    // Add Farcaster user context if available
+    if (farcasterUser) {
+      tradeToSave.fid = farcasterUser.fid;
+      tradeToSave.username = farcasterUser.username;
+      tradeToSave.walletAddress = farcasterUser.walletAddress;
+    }
 
     try {
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'trades', tradeId), tradeToSave);
