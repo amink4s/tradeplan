@@ -3,7 +3,6 @@
 export default async function handler(req, res) {
   const url = new URL(req.url, `https://${req.headers.host}`);
   const searchParams = url.searchParams;
-  const baseUrl = `${url.protocol}//${url.host}`;
 
   // Get trade data from query params
   const pair = searchParams.get('pair') || 'BTC/USDT';
@@ -15,20 +14,9 @@ export default async function handler(req, res) {
   const risk = searchParams.get('risk') || '1';
   const username = searchParams.get('username') || 'Trader';
 
-  // Build the OG image URL with same params
-  const ogParams = new URLSearchParams({
-    pair,
-    direction,
-    entry,
-    tp,
-    sl,
-    rr,
-    risk,
-    username,
-  });
-
-  const imageUrl = `${baseUrl}/api/og/trade?${ogParams.toString()}`;
   const appUrl = 'https://tradeplan-mu.vercel.app';
+  // Use the static image for the embed (PNG required for Farcaster)
+  const imageUrl = `${appUrl}/image.png`;
 
   // Build fc:miniapp metadata
   const fcMiniapp = JSON.stringify({
@@ -56,6 +44,7 @@ export default async function handler(req, res) {
   
   <!-- Farcaster Mini App Meta Tag -->
   <meta name="fc:miniapp" content='${fcMiniapp.replace(/'/g, "&#39;")}' />
+  <meta name="fc:frame" content='${fcMiniapp.replace(/'/g, "&#39;")}' />
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="${pair} ${direction.toUpperCase()} - TradePlan" />
