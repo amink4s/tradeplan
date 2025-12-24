@@ -18,8 +18,6 @@ const AppContent = () => {
   const [view, setView] = useState('journal');
   const [isMinting, setIsMinting] = useState(false);
   const [lastSavedTrade, setLastSavedTrade] = useState(null);
-  const [isReady, setIsReady] = useState(false);
-  const readyCalled = useRef(false);
   
   const { user: farcasterUser } = useContext(FarcasterContext);
   const { trades, saveTrade, markResult, deleteTrade } = useTrades(user, farcasterUser);
@@ -30,7 +28,7 @@ const AppContent = () => {
   // Auth Logic
   useEffect(() => {
     if (! auth) {
-      console.error('Firebase is not configured. Please set VITE_FIREBASE_CONFIG environment variable.');
+      console.error('Firebase is not configured.  Please set VITE_FIREBASE_CONFIG environment variable.');
       return;
     }
 
@@ -52,27 +50,6 @@ const AppContent = () => {
     return () => unsubscribe();
   }, []);
 
-  // Call sdk.actions.ready() when the app is ready to display
-  useEffect(() => {
-    const callReady = async () => {
-      // Only call ready once, and only after user is authenticated
-      if (user && !readyCalled.current) {
-        readyCalled. current = true;
-        try {
-          await sdk.actions.ready();
-          setIsReady(true);
-          console.log('Farcaster SDK ready called successfully');
-        } catch (err) {
-          console.error('Failed to call sdk.actions.ready():', err);
-          // Still set ready to true so app doesn't get stuck
-          setIsReady(true);
-        }
-      }
-    };
-    
-    callReady();
-  }, [user]);
-
   const handleSavePlan = async (tradeData) => {
     const savedTrade = await saveTrade(tradeData);
     if (savedTrade) {
@@ -82,7 +59,6 @@ const AppContent = () => {
   };
 
   const handleMint = () => {
-    // Placeholder for actual minting logic
     setIsMinting(false);
     setView('journal');
   };
@@ -92,10 +68,14 @@ const AppContent = () => {
     setView('journal');
   };
 
-  if (!user) {
+  // Show loading state while Firebase auth is in progress
+  if (! user) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-500 font-mono">
-        Initializing Session...
+        <div className="text-center">
+          <div className="animate-pulse mb-2">●</div>
+          Initializing Session... 
+        </div>
       </div>
     );
   }
@@ -105,7 +85,7 @@ const AppContent = () => {
       <div className="max-w-xl mx-auto">
         <UserProfileBar />
         
-        {!isMinting && (
+        {! isMinting && (
           <Navigation currentView={view} onViewChange={setView} />
         )}
 
@@ -143,6 +123,26 @@ const AppContent = () => {
 };
 
 const App = () => {
+  const readyCalled = useRef(false);
+
+  // Call sdk.actions. ready() IMMEDIATELY when app mounts
+  // This must happen before any async operations
+  useEffect(() => {
+    const callReady = async () => {
+      if (! readyCalled.current) {
+        readyCalled.current = true;
+        try {
+          await sdk. actions.ready();
+          console.log('Farcaster SDK ready called successfully');
+        } catch (err) {
+          console.error('Failed to call sdk.actions.ready():', err);
+        }
+      }
+    };
+    
+    callReady();
+  }, []);
+
   return (
     <FarcasterProvider>
       <AppContent />
