@@ -1,0 +1,33 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjQ3NzEyNiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDIxOGE5YjU4QjkyOWRCRDBEOTEzMkFENEZlYzBkRkRCNzkyNDUyYkQifQ",
+    "payload": "eyJkb21haW4iOiJ0cmFkZXBsYW4tbXUudmVyY2VsLmFwcCJ9",
+    "signature": "5ivt5DrieZiYSinf6vElyoo1YVsvMRjzEEM+oE5tGysVj2X8dEcxVwM+DlX2wz/yFPFIOLhmH4lGoEoNwNkm2Rw="
+  },
+  "frame": {
+    "name": "Traed plan",
+    "version": "1",
+    "iconUrl": "https://tradeplan-mu.vercel.app/icon.png",
+    "homeUrl": "https://tradeplan-mu.vercel.app",
+    "imageUrl": "https://tradeplan-mu.vercel.app/image.png",
+    "buttonTitle": "tradeplan",
+    "splashImageUrl": "https://tradeplan-mu.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://tradeplan-mu.vercel.app/api/webhook",
+    "subtitle": "log your trades",
+    "description": "stay desciplined and commited to your trading strategy",
+    "primaryCategory": "finance",
+    "screenshotUrls": [
+      "https://tradeplan-mu.vercel.app/screeenshot1.ong"
+    ],
+    "heroImageUrl": "https://tradeplan-mu.vercel.app/image.ong",
+    "tags": [
+      "trade",
+      "tradeplan",
+      "journal"
+    ],
+    "tagline": "log your trades",
+    "ogTitle": "tradeplan your trading journal",
+    "ogImageUrl": "https://tradeplan-mu.vercel.app/image.png"
+  }
+}
