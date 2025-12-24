@@ -16,7 +16,8 @@ export const useTrades = (user, farcasterUser = null) => {
   useEffect(() => {
     if (!user) return;
 
-    const tradesCol = collection(db, ...getTradesCollectionPath());
+    // Use user-specific trades collection path
+    const tradesCol = collection(db, ...getTradesCollectionPath(user.uid));
     
     const unsubscribe = onSnapshot(
       tradesCol, 
@@ -49,7 +50,7 @@ export const useTrades = (user, farcasterUser = null) => {
     }
 
     try {
-      await setDoc(doc(db, ...getTradeDocPath(tradeId)), tradeToSave);
+      await setDoc(doc(db, ...getTradeDocPath(user.uid, tradeId)), tradeToSave);
       return { ...tradeToSave, id: tradeId };
     } catch (err) {
       console.error("Save failed", err);
@@ -59,7 +60,7 @@ export const useTrades = (user, farcasterUser = null) => {
 
   const markResult = async (id, result) => {
     if (!user) return;
-    const tradeRef = doc(db, ...getTradeDocPath(id));
+    const tradeRef = doc(db, ...getTradeDocPath(user.uid, id));
     await updateDoc(tradeRef, { 
       status: 'closed', 
       result,
@@ -69,7 +70,7 @@ export const useTrades = (user, farcasterUser = null) => {
 
   const deleteTrade = async (id) => {
     if (!user) return;
-    await deleteDoc(doc(db, ...getTradeDocPath(id)));
+    await deleteDoc(doc(db, ...getTradeDocPath(user.uid, id)));
   };
 
   return {

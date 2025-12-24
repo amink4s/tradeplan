@@ -27,15 +27,17 @@ export const getUserDocPath = (fid) => {
 };
 
 /**
- * Get the path to the trades collection
+ * Get the path to the trades collection for a specific user
+ * Each user has their own trades subcollection
  */
-export const getTradesCollectionPath = () => {
-  return [...getAppBasePath(), 'trades'];
+export const getTradesCollectionPath = (userId) => {
+  const appId = getAppId();
+  return ['artifacts', appId, 'users', userId, 'trades'];
 };
 
 /**
- * Get the path to a specific trade document
+ * Get the path to a specific trade document for a user
  */
-export const getTradeDocPath = (tradeId) => {
-  return [...getTradesCollectionPath(), tradeId];
+export const getTradeDocPath = (userId, tradeId) => {
+  return [...getTradesCollectionPath(userId), tradeId];
 };
