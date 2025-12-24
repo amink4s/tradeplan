@@ -1,11 +1,8 @@
 // Share page API route - returns HTML with dynamic fc:miniapp metadata
-export const config = {
-  runtime: 'edge',
-};
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const url = new URL(req.url);
+export default async function handler(req, res) {
+  const url = new URL(req.url, `https://${req.headers.host}`);
+  const searchParams = url.searchParams;
   const baseUrl = `${url.protocol}//${url.host}`;
 
   // Get trade data from query params
@@ -87,10 +84,7 @@ export default async function handler(req) {
 </body>
 </html>`;
 
-  return new Response(html, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Cache-Control': 'public, max-age=3600',
-    },
-  });
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  return res.status(200).send(html);
 }
