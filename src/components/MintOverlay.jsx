@@ -1,11 +1,13 @@
 import { useState } from 'preact/hooks';
-import { ShieldCheck, Award, Share2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Award, Share2, Loader2, CheckCircle, AlertCircle, Send } from 'lucide-react';
+import { sdk } from '@farcaster/miniapp-sdk';
 import { uploadTradeMetadata, isIPFSConfigured } from '../services/ipfs';
 
 export const MintOverlay = ({ trade, user, onMint, onSkip }) => {
   const [mintState, setMintState] = useState('idle'); // idle, uploading, minting, complete, error
   const [error, setError] = useState(null);
   const [ipfsData, setIpfsData] = useState(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleMint = async () => {
     setError(null);
@@ -50,6 +52,39 @@ export const MintOverlay = ({ trade, user, onMint, onSkip }) => {
       console.error('Minting failed:', err);
       setError(err.message || 'Failed to mint commitment');
       setMintState('error');
+    }
+  };
+
+  const handleShare = async () => {
+    if (!trade) return;
+    
+    setIsSharing(true);
+    try {
+      // Build the share URL with trade data as query params
+      const baseUrl = 'https://tradeplan-mu.vercel.app';
+      const shareParams = new URLSearchParams({
+        pair: trade.pair || '',
+        direction: trade.direction || 'long',
+        entry: trade.entry || '0',
+        tp: trade.tp || '0',
+        sl: trade.sl || '0',
+        rr: trade.rr || '0',
+        risk: trade.riskPercent || '1',
+        username: user?.username || 'Trader',
+      });
+      
+      const shareUrl = `${baseUrl}/api/share/trade?${shareParams.toString()}`;
+      
+      // Open Farcaster compose with the share URL as embed
+      await sdk.actions.composeCast({
+        text: `📊 I just committed to a ${trade.pair} ${trade.direction.toUpperCase()} trade!\n\nEntry: ${trade.entry}\nTarget: ${trade.tp}\nR:R: 1:${trade.rr}\n\nPlan your trades with TradePlan 👇`,
+        embeds: [shareUrl],
+      });
+    } catch (err) {
+      console.error('Share failed:', err);
+      setError('Failed to open share dialog');
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -135,19 +170,36 @@ export const MintOverlay = ({ trade, user, onMint, onSkip }) => {
       )}
 
       <div className="flex flex-col gap-3">
-        <button 
-          onClick={handleMint} 
-          disabled={mintState === 'uploading' || mintState === 'minting' || mintState === 'complete'}
-          className={`w-full py-4 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition
-            ${mintState === 'complete' 
-              ? 'bg-emerald-600 text-white' 
-              : mintState === 'error'
-              ? 'bg-rose-600 hover:bg-rose-500 text-white'
-              : 'bg-blue-600 hover: bg-blue-500 disabled:opacity-50 text-white shadow-blue-900/20'
-            }`}
-        >
-          {getButtonContent()}
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleMint} 
+            disabled={mintState === 'uploading' || mintState === 'minting' || mintState === 'complete'}
+            className={`flex-1 py-4 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition
+              ${mintState === 'complete' 
+                ? 'bg-emerald-600 text-white' 
+                : mintState === 'error'
+                ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-blue-900/20'
+              }`}
+          >
+            {getButtonContent()}
+          </button>
+          <button 
+            onClick={handleShare}
+            disabled={isSharing || mintState === 'uploading' || mintState === 'minting'}
+            className="flex-1 py-4 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white"
+          >
+            {isSharing ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> SHARING...
+              </>
+            ) : (
+              <>
+                <Send size={18} /> SHARE
+              </>
+            )}
+          </button>
+        </div>
         <button 
           onClick={onSkip} 
           disabled={mintState === 'uploading' || mintState === 'minting'}
