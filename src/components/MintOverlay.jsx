@@ -1,69 +1,67 @@
-import { ShieldCheck, Award, Share2, Loader2 } from 'lucide-react';
 import { useState } from 'preact/hooks';
+import { ShieldCheck, Award, Share2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { uploadTradeMetadata, isIPFSConfigured } from '../services/ipfs';
 
-export const MintOverlay = ({ trade, onMint, onSkip }) => {
-  const [mintState, setMintState] = useState('idle'); // idle | uploading | minting | complete | error
+export const MintOverlay = ({ trade, user, onMint, onSkip }) => {
+  const [mintState, setMintState] = useState('idle'); // idle, uploading, minting, complete, error
   const [error, setError] = useState(null);
+  const [ipfsData, setIpfsData] = useState(null);
 
-  const handleMintClick = async () => {
+  const handleMint = async () => {
+    setError(null);
+    
+    // Check if IPFS is configured
+    if (!isIPFSConfigured()) {
+      setError('IPFS storage not configured. Please set up 4EVERLAND credentials.');
+      setMintState('error');
+      return;
+    }
+
     try {
+      // Step 1: Upload metadata to IPFS
       setMintState('uploading');
-      setError(null);
+      const result = await uploadTradeMetadata(trade, user);
+      setIpfsData(result);
+      console.log('Metadata uploaded to IPFS:', result);
 
-      // TODO: Step 1 - Generate trade commitment image/metadata
-      // This would create an image or JSON metadata for the NFT
-      
-      // TODO: Step 2 - Upload to IPFS (when configured)
-      // Check if IPFS is configured, if not skip this step
-      const ipfsConfigured = 
-        import.meta.env.VITE_STORJ_ACCESS_GRANT ||
-        import.meta.env.VITE_4EVERLAND_API_KEY ||
-        import.meta.env.VITE_WEB3_STORAGE_TOKEN;
-
-      let ipfsCID = null;
-      if (ipfsConfigured) {
-        // import { uploadToIPFS, generateTradeMetadata } from '../services/ipfs';
-        // const metadata = generateTradeMetadata(trade);
-        // ipfsCID = await uploadToIPFS(metadata);
-        console.log('IPFS upload would happen here if configured');
-      } else {
-        console.warn('IPFS not configured - skipping metadata upload');
-      }
-
+      // Step 2: Mint NFT (placeholder - needs contract integration)
       setMintState('minting');
+      
+      // TODO: Add actual minting logic here using wagmi
+      // const { writeContract } = useWriteContract();
+      // await writeContract({
+      //   address: NFT_CONTRACT_ADDRESS,
+      //   abi: NFT_ABI,
+      //   functionName: 'mint',
+      //   args: [result.url],
+      // });
 
-      // TODO: Step 3 - Call NFT contract mint function via wagmi
-      // This would use the contract address from VITE_NFT_CONTRACT_ADDRESS
-      const contractAddress = import.meta.env.VITE_NFT_CONTRACT_ADDRESS;
-      if (!contractAddress) {
-        throw new Error('NFT contract address not configured. Set VITE_NFT_CONTRACT_ADDRESS in .env');
-      }
-
-      // Simulate minting for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // For now, simulate success after upload
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setMintState('complete');
       
-      // Wait a moment before calling onMint
+      // Call parent callback after short delay
       setTimeout(() => {
-        onMint();
-      }, 1500);
+        onMint(result);
+      }, 2000);
+
     } catch (err) {
-      console.error('Mint failed:', err);
-      setError(err.message);
+      console.error('Minting failed:', err);
+      setError(err.message || 'Failed to mint commitment');
       setMintState('error');
     }
   };
 
-  const getMintButtonContent = () => {
+  const getButtonContent = () => {
     switch (mintState) {
       case 'uploading':
         return (
           <>
-            <Loader2 size={18} className="animate-spin" /> UPLOADING METADATA...
+            <Loader2 size={18} className="animate-spin" /> UPLOADING TO IPFS... 
           </>
         );
-      case 'minting':
+      case 'minting': 
         return (
           <>
             <Loader2 size={18} className="animate-spin" /> MINTING...
@@ -72,11 +70,15 @@ export const MintOverlay = ({ trade, onMint, onSkip }) => {
       case 'complete':
         return (
           <>
-            <ShieldCheck size={18} /> MINTED!
+            <CheckCircle size={18} /> MINTED SUCCESSFULLY!
           </>
         );
       case 'error':
-        return 'TRY AGAIN';
+        return (
+          <>
+            <AlertCircle size={18} /> TRY AGAIN
+          </>
+        );
       default:
         return (
           <>
@@ -93,7 +95,7 @@ export const MintOverlay = ({ trade, onMint, onSkip }) => {
       </div>
       <h2 className="text-2xl font-bold mb-2">Plan Locked In</h2>
       <p className="text-slate-400 text-sm mb-6">
-        Commit this plan to the blockchain to prevent yourself from breaking your rules.
+        Commit this plan to the blockchain to prevent yourself from breaking your rules. 
       </p>
       
       <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 mb-6 text-left relative overflow-hidden">
@@ -104,7 +106,7 @@ export const MintOverlay = ({ trade, onMint, onSkip }) => {
           Commitment Certificate
         </p>
         <h3 className="text-xl font-bold text-white mb-2">
-          {trade?.pair} {trade?.direction.toUpperCase()}
+          {trade?. pair} {trade?. direction.toUpperCase()}
         </h3>
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           <div className="text-slate-500 uppercase">Risk</div>
@@ -116,38 +118,43 @@ export const MintOverlay = ({ trade, onMint, onSkip }) => {
         </div>
       </div>
 
+      {/* IPFS Status */}
+      {ipfsData && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 mb-4 text-left">
+          <p className="text-emerald-400 text-xs font-mono">
+            ✓ Stored on IPFS:  {ipfsData. cid. substring(0, 20)}...
+          </p>
+        </div>
+      )}
+
+      {/* Error Message */}
       {error && (
-        <div className="bg-red-900/20 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg mb-4">
-          {error}
+        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
+          <p className="text-rose-400 text-xs">{error}</p>
         </div>
       )}
 
       <div className="flex flex-col gap-3">
         <button 
-          onClick={handleMintClick} 
+          onClick={handleMint} 
           disabled={mintState === 'uploading' || mintState === 'minting' || mintState === 'complete'}
-          className={`w-full py-4 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all ${
-            mintState === 'error' 
-              ? 'bg-red-600 text-white shadow-red-900/20'
-              : mintState === 'complete'
-              ? 'bg-emerald-600 text-white shadow-emerald-900/20'
-              : 'bg-blue-600 text-white shadow-blue-900/20'
-          } ${
-            (mintState === 'uploading' || mintState === 'minting' || mintState === 'complete')
-              ? 'opacity-75 cursor-not-allowed'
-              : 'hover:bg-blue-700'
-          }`}
+          className={`w-full py-4 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition
+            ${mintState === 'complete' 
+              ? 'bg-emerald-600 text-white' 
+              : mintState === 'error'
+              ? 'bg-rose-600 hover:bg-rose-500 text-white'
+              : 'bg-blue-600 hover: bg-blue-500 disabled:opacity-50 text-white shadow-blue-900/20'
+            }`}
         >
-          {getMintButtonContent()}
+          {getButtonContent()}
         </button>
-        {mintState === 'idle' || mintState === 'error' ? (
-          <button 
-            onClick={onSkip} 
-            className="w-full py-3 bg-transparent text-slate-500 text-sm font-medium hover:text-slate-400"
-          >
-            Skip for now
-          </button>
-        ) : null}
+        <button 
+          onClick={onSkip} 
+          disabled={mintState === 'uploading' || mintState === 'minting'}
+          className="w-full py-3 bg-transparent text-slate-500 text-sm font-medium disabled:opacity-30"
+        >
+          Skip for now
+        </button>
       </div>
     </div>
   );

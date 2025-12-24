@@ -1,93 +1,131 @@
-/**
- * IPFS Upload Service
- * 
- * This service provides a unified interface for uploading files to IPFS
- * using different providers based on environment configuration.
- * 
- * Supported Providers:
- * 1. Storj - Decentralized cloud storage (accepts crypto)
- *    - Set VITE_STORJ_ACCESS_GRANT and VITE_STORJ_BUCKET
- * 
- * 2. 4EVERLAND - IPFS pinning service (accepts crypto)
- *    - Set VITE_4EVERLAND_API_KEY and VITE_4EVERLAND_BUCKET
- * 
- * 3. web3.storage / NFT.Storage - Free IPFS storage
- *    - Set VITE_WEB3_STORAGE_TOKEN
- */
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+
+// 4EVERLAND S3-compatible client configuration
+const s3Client = new S3Client({
+  endpoint: import.meta.env. VITE_4EVERLAND_ENDPOINT || 'https://endpoint.4everland. co',
+  credentials: {
+    accessKeyId: import. meta.env. VITE_4EVERLAND_API_KEY,
+    secretAccessKey: import. meta.env. VITE_4EVERLAND_API_SECRET,
+  },
+  region: '4everland',
+  forcePathStyle: true,
+});
+
+const BUCKET_NAME = import.meta.env.VITE_4EVERLAND_BUCKET;
 
 /**
- * Upload a file to IPFS using the configured provider
- * @param {File|Blob} file - The file to upload
- * @param {Object} metadata - Optional metadata object to include
- * @returns {Promise<string>} The IPFS CID/hash
+ * Check if 4EVERLAND is properly configured
  */
-export const uploadToIPFS = async (file, metadata = {}) => {
-  // Check which provider is configured
-  const storjGrant = import.meta.env.VITE_STORJ_ACCESS_GRANT;
-  const storjBucket = import.meta.env.VITE_STORJ_BUCKET;
-  const fourEverApiKey = import.meta.env.VITE_4EVERLAND_API_KEY;
-  const fourEverBucket = import.meta.env.VITE_4EVERLAND_BUCKET;
-  const web3Token = import.meta.env.VITE_WEB3_STORAGE_TOKEN;
+export const isIPFSConfigured = () => {
+  return ! !(
+    import.meta.env. VITE_4EVERLAND_API_KEY &&
+    import.meta.env.VITE_4EVERLAND_API_SECRET &&
+    import.meta.env. VITE_4EVERLAND_BUCKET
+  );
+};
 
-  if (storjGrant && storjBucket) {
-    return uploadViaStorj(file, metadata, storjGrant, storjBucket);
-  } else if (fourEverApiKey && fourEverBucket) {
-    return uploadVia4EVERLAND(file, metadata, fourEverApiKey, fourEverBucket);
-  } else if (web3Token) {
-    return uploadViaWeb3Storage(file, metadata, web3Token);
-  } else {
-    throw new Error(
-      'No IPFS provider configured. Please set one of: ' +
-      'VITE_STORJ_ACCESS_GRANT, VITE_4EVERLAND_API_KEY, or VITE_WEB3_STORAGE_TOKEN'
-    );
+/**
+ * Upload a file to 4EVERLAND and get the IPFS CID
+ * @param {File|Blob|Buffer} file - The file to upload
+ * @param {string} filename - The filename to use
+ * @param {string} contentType - MIME type of the file
+ * @returns {Promise<{cid: string, url: string}>}
+ */
+export const uploadToIPFS = async (file, filename, contentType = 'application/json') => {
+  if (!isIPFSConfigured()) {
+    throw new Error('4EVERLAND is not configured.  Please set environment variables.');
   }
-};
 
-/**
- * Upload via Storj
- * Requires: npm install @storj/uplink
- */
-const uploadViaStorj = async (file, metadata, accessGrant, bucketName) => {
-  // TODO: Implement Storj upload
-  // Documentation: https://docs.storj.io/dcs/api-reference/uplink-cli
-  throw new Error('Storj upload not yet implemented. See documentation in src/services/ipfs.js');
-};
+  // Convert File/Blob to ArrayBuffer if needed
+  let body = file;
+  if (file instanceof Blob || file instanceof File) {
+    body = await file.arrayBuffer();
+    body = new Uint8Array(body);
+  }
 
-/**
- * Upload via 4EVERLAND
- * Uses S3-compatible API
- */
-const uploadVia4EVERLAND = async (file, metadata, apiKey, bucketName) => {
-  // TODO: Implement 4EVERLAND upload
-  // Documentation: https://docs.4everland.org/storage/bucket/api
-  throw new Error('4EVERLAND upload not yet implemented. See documentation in src/services/ipfs.js');
-};
+  const key = `commitments/${Date.now()}-${filename}`;
 
-/**
- * Upload via web3.storage
- * Requires: npm install web3.storage
- */
-const uploadViaWeb3Storage = async (file, metadata, token) => {
-  // TODO: Implement web3.storage upload
-  // Documentation: https://web3.storage/docs/
-  throw new Error('web3.storage upload not yet implemented. See documentation in src/services/ipfs.js');
-};
+  // Upload the file
+  const putCommand = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
 
-/**
- * Helper: Generate trade commitment metadata for NFT
- */
-export const generateTradeMetadata = (trade) => {
+  await s3Client.send(putCommand);
+
+  // Get the IPFS hash from metadata
+  const headCommand = new HeadObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  const metadata = await s3Client.send(headCommand);
+  const cid = metadata. Metadata?.['ipfs-hash'] || metadata. Metadata?.['x-amz-meta-ipfs-hash'];
+
+  if (!cid) {
+    throw new Error('Failed to retrieve IPFS CID from 4EVERLAND');
+  }
+
   return {
-    name: `Trade Plan - ${trade.pair}`,
-    description: `Trading commitment for ${trade.pair} ${trade.direction.toUpperCase()}`,
-    attributes: [
-      { trait_type: 'Pair', value: trade.pair },
-      { trait_type: 'Direction', value: trade.direction.toUpperCase() },
-      { trait_type: 'Entry', value: trade.entry },
-      { trait_type: 'Target', value: trade.tp },
-      { trait_type: 'Stop Loss', value: trade.sl },
-      { trait_type: 'Risk Percent', value: `${trade.riskPercent}%` },
-      { trait_type: 'Timestamp', value: trade.timestamp },
-    ],
+    cid,
+    url: `https://ipfs.io/ipfs/${cid}`,
+    gateway4everland: `https://4everland.io/ipfs/${cid}`,
   };
+};
+
+/**
+ * Upload trade commitment metadata as JSON
+ * @param {object} trade - The trade object
+ * @param {object} user - The Farcaster user object
+ * @returns {Promise<{cid: string, url: string}>}
+ */
+export const uploadTradeMetadata = async (trade, user) => {
+  const metadata = {
+    name: `TradePlan Commitment:  ${trade.pair} ${trade.direction. toUpperCase()}`,
+    description: `A trading commitment locked on-chain by @${user?. username || 'anonymous'}`,
+    image: '', // We'll add image generation later
+    attributes:  [
+      { trait_type: 'Pair', value: trade.pair },
+      { trait_type: 'Direction', value: trade. direction.toUpperCase() },
+      { trait_type: 'Entry', value: trade.entry },
+      { trait_type: 'Stop Loss', value: trade. sl },
+      { trait_type: 'Take Profit', value:  trade.tp },
+      { trait_type:  'Risk %', value: `${trade.riskPercent}%` },
+      { trait_type: 'R: R', value: `1:${trade.rr}` },
+      { trait_type:  'Position Size', value: trade.positionSize },
+      { trait_type: 'Trader', value: user?.username || 'anonymous' },
+      { trait_type:  'Trader FID', value: user?.fid?. toString() || 'unknown' },
+    ],
+    external_url: 'https://tradeplan.app', // Update with your actual URL
+    timestamp: Date.now(),
+    trader: {
+      fid:  user?.fid,
+      username: user?.username,
+      walletAddress: user?. walletAddress,
+    },
+    trade: {
+      ... trade,
+      thesis: trade.thesis,
+    },
+  };
+
+  const jsonBlob = new Blob([JSON.stringify(metadata, null, 2)], {
+    type: 'application/json',
+  });
+
+  return uploadToIPFS(jsonBlob, `${trade.id || Date.now()}-metadata. json`, 'application/json');
+};
+
+/**
+ * Upload an image to IPFS (for commitment certificate images)
+ * @param {Blob|File} imageBlob - The image blob
+ * @param {string} tradeId - The trade ID for naming
+ * @returns {Promise<{cid: string, url: string}>}
+ */
+export const uploadImage = async (imageBlob, tradeId) => {
+  const contentType = imageBlob.type || 'image/png';
+  const extension = contentType.split('/')[1] || 'png';
+  return uploadToIPFS(imageBlob, `${tradeId}-certificate.${extension}`, contentType);
 };

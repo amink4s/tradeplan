@@ -88,6 +88,7 @@ const AppContent = () => {
         {isMinting && (
           <MintOverlay 
             trade={lastSavedTrade}
+            user={farcasterUser}
             onMint={handleMint}
             onSkip={handleSkipMint}
           />
