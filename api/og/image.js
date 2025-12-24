@@ -1,47 +1,13 @@
-import satori from 'satori';
-import { Resvg, initWasm } from '@resvg/resvg-wasm';
+import { ImageResponse } from '@vercel/og';
 
 export const config = {
   runtime: 'edge',
 };
 
-// WASM initialization state
-let wasmInitialized = false;
-
-async function initResvg() {
-  if (wasmInitialized) return;
-  
-  try {
-    // Fetch the WASM binary from CDN
-    const wasmResponse = await fetch(
-      'https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm'
-    );
-    const wasmBuffer = await wasmResponse.arrayBuffer();
-    await initWasm(wasmBuffer);
-    wasmInitialized = true;
-  } catch (e) {
-    // May already be initialized
-    if (!e.message?.includes('Already initialized')) {
-      console.error('WASM init error:', e);
-    }
-    wasmInitialized = true;
-  }
-}
-
-// Fetch Inter font from Google Fonts
-async function loadFont() {
-  const response = await fetch(
-    'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff'
-  );
-  return await response.arrayBuffer();
-}
-
 export default async function handler(req) {
   try {
-    await initResvg();
-    
     const { searchParams } = new URL(req.url);
-    
+
     // Get trade data from query params
     const pair = searchParams.get('pair') || 'BTC/USDT';
     const direction = searchParams.get('direction') || 'long';
@@ -53,322 +19,306 @@ export default async function handler(req) {
     const username = searchParams.get('username') || 'Trader';
 
     const isLong = direction.toLowerCase() === 'long';
-    const directionColor = isLong ? '#10b981' : '#f43f5e';
+    const directionColor = isLong ? '#34d399' : '#fb7185'; // emerald-400 / rose-400
+    const directionBg = isLong ? 'rgba(16,185,129,0.2)' : 'rgba(244,63,94,0.2)';
 
-    // Load font
-    const fontData = await loadFont();
-
-    // Create the image using Satori
-    const svg = await satori(
-      {
-        type: 'div',
-        props: {
-          style: {
+    return new ImageResponse(
+      (
+        <div
+          style={{
             height: '100%',
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: '#020617',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#0f172a', // slate-900
             padding: 60,
-          },
-          children: [
-            // Header
-            {
-              type: 'div',
-              props: {
-                style: {
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 30,
-                },
-                children: [
-                  {
-                    type: 'div',
-                    props: {
-                      style: { fontSize: 36, fontWeight: 700, color: '#3b82f6' },
-                      children: '📊 TradePlan',
-                    },
-                  },
-                  {
-                    type: 'div',
-                    props: {
-                      style: { fontSize: 28, color: '#64748b' },
-                      children: `@${username}`,
-                    },
-                  },
-                ],
-              },
-            },
-            // Main Card
-            {
-              type: 'div',
-              props: {
-                style: {
-                  display: 'flex',
-                  flexDirection: 'column',
-                  backgroundColor: '#0f172a',
-                  borderRadius: 24,
-                  padding: 40,
-                  border: '2px solid #1e293b',
-                  flexGrow: 1,
-                },
-                children: [
-                  // Pair and Direction Row
-                  {
-                    type: 'div',
-                    props: {
-                      style: {
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginBottom: 30,
-                      },
-                      children: [
-                        {
-                          type: 'div',
-                          props: {
-                            style: { fontSize: 52, fontWeight: 700, color: '#f1f5f9', marginRight: 20 },
-                            children: pair,
-                          },
-                        },
-                        {
-                          type: 'div',
-                          props: {
-                            style: {
-                              fontSize: 26,
-                              fontWeight: 700,
-                              color: directionColor,
-                              backgroundColor: isLong ? 'rgba(16,185,129,0.2)' : 'rgba(244,63,94,0.2)',
-                              padding: '10px 20px',
-                              borderRadius: 10,
-                            },
-                            children: direction.toUpperCase(),
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  // Price boxes row
-                  {
-                    type: 'div',
-                    props: {
-                      style: {
-                        display: 'flex',
-                        marginBottom: 30,
-                      },
-                      children: [
-                        // Entry
-                        {
-                          type: 'div',
-                          props: {
-                            style: {
-                              display: 'flex',
-                              flexDirection: 'column',
-                              flex: 1,
-                              backgroundColor: '#1e293b',
-                              borderRadius: 16,
-                              padding: 20,
-                              marginRight: 16,
-                            },
-                            children: [
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 14, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' },
-                                  children: 'Entry',
-                                },
-                              },
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 28, fontWeight: 700, color: '#f1f5f9' },
-                                  children: entry,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                        // Target
-                        {
-                          type: 'div',
-                          props: {
-                            style: {
-                              display: 'flex',
-                              flexDirection: 'column',
-                              flex: 1,
-                              backgroundColor: '#1e293b',
-                              borderRadius: 16,
-                              padding: 20,
-                              marginRight: 16,
-                            },
-                            children: [
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 14, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' },
-                                  children: 'Target',
-                                },
-                              },
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 28, fontWeight: 700, color: '#10b981' },
-                                  children: tp,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                        // Stop
-                        {
-                          type: 'div',
-                          props: {
-                            style: {
-                              display: 'flex',
-                              flexDirection: 'column',
-                              flex: 1,
-                              backgroundColor: '#1e293b',
-                              borderRadius: 16,
-                              padding: 20,
-                            },
-                            children: [
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 14, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' },
-                                  children: 'Stop',
-                                },
-                              },
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 28, fontWeight: 700, color: '#f43f5e' },
-                                  children: sl,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  // Bottom stats
-                  {
-                    type: 'div',
-                    props: {
-                      style: {
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderTop: '1px solid #1e293b',
-                        paddingTop: 24,
-                        marginTop: 'auto',
-                      },
-                      children: [
-                        {
-                          type: 'div',
-                          props: {
-                            style: { display: 'flex', alignItems: 'center' },
-                            children: [
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 20, color: '#64748b', marginRight: 10 },
-                                  children: 'Risk:',
-                                },
-                              },
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 26, fontWeight: 700, color: '#f1f5f9' },
-                                  children: `${riskPercent}%`,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                        {
-                          type: 'div',
-                          props: {
-                            style: { display: 'flex', alignItems: 'center' },
-                            children: [
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 20, color: '#64748b', marginRight: 10 },
-                                  children: 'R:R Ratio:',
-                                },
-                              },
-                              {
-                                type: 'div',
-                                props: {
-                                  style: { fontSize: 26, fontWeight: 700, color: '#3b82f6' },
-                                  children: `1:${rr}`,
-                                },
-                              },
-                            ],
-                          },
-                        },
-                      ],
-                    },
-                  },
-                ],
-              },
-            },
-            // Footer
-            {
-              type: 'div',
-              props: {
-                style: {
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginTop: 24,
-                  color: '#475569',
+          }}
+        >
+          {/* Commitment Certificate Card - matches MintOverlay design */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#020617', // slate-950
+              borderRadius: 32,
+              padding: 48,
+              border: '2px solid #1e293b', // slate-800
+              width: '100%',
+              maxWidth: 1000,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Award watermark icon (top right) */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                fontSize: 160,
+                opacity: 0.08,
+              }}
+            >
+              🏆
+            </div>
+
+            {/* Header: Commitment Certificate */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                marginBottom: 24,
+              }}
+            >
+              <div
+                style={{
                   fontSize: 18,
-                },
-                children: 'Committed on TradePlan • tradeplan-mu.vercel.app',
-              },
-            },
-          ],
-        },
-      },
+                  fontWeight: 600,
+                  color: '#3b82f6', // blue-500
+                  textTransform: 'uppercase',
+                  letterSpacing: '-0.5px',
+                  marginBottom: 8,
+                  fontFamily: 'monospace',
+                }}
+              >
+                Commitment Certificate
+              </div>
+              
+              {/* Pair + Direction */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 56,
+                    fontWeight: 700,
+                    color: '#ffffff',
+                  }}
+                >
+                  {pair}
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 800,
+                    color: directionColor,
+                    backgroundColor: directionBg,
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                  }}
+                >
+                  {direction.toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            {/* Trade Details Grid - matches MintOverlay */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+                fontFamily: 'monospace',
+              }}
+            >
+              {/* Risk Row */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    color: '#64748b', // slate-500
+                    textTransform: 'uppercase',
+                    width: 140,
+                  }}
+                >
+                  Risk
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    color: '#cbd5e1', // slate-300
+                    fontWeight: 600,
+                  }}
+                >
+                  {riskPercent}%
+                </div>
+              </div>
+
+              {/* Entry Row */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    width: 140,
+                  }}
+                >
+                  Entry
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    color: '#cbd5e1',
+                    fontWeight: 600,
+                  }}
+                >
+                  {entry}
+                </div>
+              </div>
+
+              {/* Stop Loss Row */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    color: '#fb7185', // rose-400
+                    textTransform: 'uppercase',
+                    width: 140,
+                  }}
+                >
+                  Stop
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    color: '#fb7185',
+                    fontWeight: 600,
+                  }}
+                >
+                  {sl}
+                </div>
+              </div>
+
+              {/* Target Row */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    color: '#34d399', // emerald-400
+                    textTransform: 'uppercase',
+                    width: 140,
+                  }}
+                >
+                  Target
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    color: '#34d399',
+                    fontWeight: 600,
+                  }}
+                >
+                  {tp}
+                </div>
+              </div>
+
+              {/* R:R Row */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    width: 140,
+                  }}
+                >
+                  R:R
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    color: '#3b82f6', // blue-500
+                    fontWeight: 600,
+                  }}
+                >
+                  1:{rr}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with username */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: 40,
+                paddingTop: 24,
+                borderTop: '1px solid #1e293b',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 20,
+                  color: '#64748b',
+                }}
+              >
+                @{username}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 20,
+                  color: '#3b82f6',
+                  fontWeight: 600,
+                }}
+              >
+                📊 TradePlan
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: 'Inter',
-            data: fontData,
-            weight: 400,
-            style: 'normal',
-          },
-          {
-            name: 'Inter',
-            data: fontData,
-            weight: 700,
-            style: 'normal',
-          },
-        ],
+        headers: {
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
+        },
       }
     );
-
-    // Convert SVG to PNG
-    const resvg = new Resvg(svg, {
-      fitTo: { mode: 'width', value: 1200 },
-    });
-    const pngData = resvg.render();
-    const pngBuffer = pngData.asPng();
-
-    return new Response(pngBuffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
-      },
-    });
   } catch (e) {
     console.error('Image generation failed:', e);
-    
-    // Fallback to static image on error
-    return Response.redirect('https://tradeplan-mu.vercel.app/image.png', 302);
+
+    // Return error image with short cache to avoid caching failures
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#020617',
+            color: '#f1f5f9',
+          }}
+        >
+          <div style={{ fontSize: 48, fontWeight: 700, marginBottom: 20 }}>
+            📊 TradePlan
+          </div>
+          <div style={{ fontSize: 24, color: '#64748b' }}>
+            Trade Commitment
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      }
+    );
   }
 }

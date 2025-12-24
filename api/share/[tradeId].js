@@ -29,8 +29,24 @@ export default async function handler(req, res) {
   });
   const imageUrl = `${appUrl}/api/og/image?${imageParams.toString()}`;
 
-  // Build fc:miniapp metadata
+  // Build fc:miniapp metadata (primary)
   const fcMiniapp = JSON.stringify({
+    version: '1',
+    imageUrl: imageUrl,
+    button: {
+      title: 'Open TradePlan',
+      action: {
+        type: 'launch_miniapp',
+        name: 'TradePlan',
+        url: appUrl,
+        splashImageUrl: `${appUrl}/splash.png`,
+        splashBackgroundColor: '#000000',
+      },
+    },
+  });
+
+  // Build fc:frame metadata (backward compatibility)
+  const fcFrame = JSON.stringify({
     version: '1',
     imageUrl: imageUrl,
     button: {
@@ -55,7 +71,7 @@ export default async function handler(req, res) {
   
   <!-- Farcaster Mini App Meta Tag -->
   <meta name="fc:miniapp" content='${fcMiniapp.replace(/'/g, "&#39;")}' />
-  <meta name="fc:frame" content='${fcMiniapp.replace(/'/g, "&#39;")}' />
+  <meta name="fc:frame" content='${fcFrame.replace(/'/g, "&#39;")}' />
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="${pair} ${direction.toUpperCase()} - TradePlan" />
