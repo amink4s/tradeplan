@@ -15,8 +15,19 @@ export default async function handler(req, res) {
   const username = searchParams.get('username') || 'Trader';
 
   const appUrl = 'https://tradeplan-mu.vercel.app';
-  // Use the static image for the embed (PNG required for Farcaster)
-  const imageUrl = `${appUrl}/image.png`;
+  
+  // Build dynamic image URL with all trade parameters
+  const imageParams = new URLSearchParams({
+    pair,
+    direction,
+    entry,
+    tp,
+    sl,
+    rr,
+    risk,
+    username,
+  });
+  const imageUrl = `${appUrl}/api/og/image?${imageParams.toString()}`;
 
   // Build fc:miniapp metadata
   const fcMiniapp = JSON.stringify({
