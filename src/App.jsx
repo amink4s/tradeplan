@@ -1,5 +1,6 @@
-import { useState, useEffect, useContext } from 'preact/hooks';
+import { useState, useEffect, useContext, useRef } from 'preact/hooks';
 import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { sdk } from '@farcaster/miniapp-sdk';
 import { auth } from './services/firebase';
 import { FarcasterProvider } from './providers/FarcasterProvider';
 import { FarcasterContext } from './contexts/FarcasterContext';
@@ -17,6 +18,8 @@ const AppContent = () => {
   const [view, setView] = useState('journal');
   const [isMinting, setIsMinting] = useState(false);
   const [lastSavedTrade, setLastSavedTrade] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+  const readyCalled = useRef(false);
   
   const { user: farcasterUser } = useContext(FarcasterContext);
   const { trades, saveTrade, markResult, deleteTrade } = useTrades(user, farcasterUser);
@@ -26,7 +29,7 @@ const AppContent = () => {
 
   // Auth Logic
   useEffect(() => {
-    if (!auth) {
+    if (! auth) {
       console.error('Firebase is not configured. Please set VITE_FIREBASE_CONFIG environment variable.');
       return;
     }
@@ -48,6 +51,27 @@ const AppContent = () => {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
+
+  // Call sdk.actions.ready() when the app is ready to display
+  useEffect(() => {
+    const callReady = async () => {
+      // Only call ready once, and only after user is authenticated
+      if (user && !readyCalled.current) {
+        readyCalled. current = true;
+        try {
+          await sdk.actions.ready();
+          setIsReady(true);
+          console.log('Farcaster SDK ready called successfully');
+        } catch (err) {
+          console.error('Failed to call sdk.actions.ready():', err);
+          // Still set ready to true so app doesn't get stuck
+          setIsReady(true);
+        }
+      }
+    };
+    
+    callReady();
+  }, [user]);
 
   const handleSavePlan = async (tradeData) => {
     const savedTrade = await saveTrade(tradeData);

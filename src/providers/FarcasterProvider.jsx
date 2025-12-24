@@ -1,9 +1,7 @@
-import { useEffect } from 'preact/hooks';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
-import { sdk } from '@farcaster/miniapp-sdk';
 import { FarcasterContext } from '../contexts/FarcasterContext';
 import { useFarcasterAuth } from '../hooks/useFarcasterAuth';
 
@@ -11,7 +9,7 @@ import { useFarcasterAuth } from '../hooks/useFarcasterAuth';
 const config = createConfig({
   chains: [base],
   transports: {
-    [base.id]: http(),
+    [base. id]: http(),
   },
   connectors: [farcasterMiniApp()],
 });
@@ -30,11 +28,8 @@ const FarcasterWrapper = ({ children }) => {
 };
 
 export const FarcasterProvider = ({ children }) => {
-  useEffect(() => {
-    // Initialize Farcaster SDK
-    sdk.actions.ready();
-  }, []);
-
+  // Note: sdk.actions.ready() is called in App.jsx after content is ready
+  
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
